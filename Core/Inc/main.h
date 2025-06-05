@@ -73,8 +73,6 @@ void Error_Handler(void);
 #define Ilevel_DAC_GPIO_Port GPIOA
 #define DAC2_Pin GPIO_PIN_5
 #define DAC2_GPIO_Port GPIOA
-#define OCP_TIM1_BK_Pin GPIO_PIN_6
-#define OCP_TIM1_BK_GPIO_Port GPIOA
 #define Status_Pin GPIO_PIN_7
 #define Status_GPIO_Port GPIOA
 #define IsenseLamp_Pin GPIO_PIN_0

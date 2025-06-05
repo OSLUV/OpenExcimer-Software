@@ -52,6 +52,9 @@ default.size.stdout \
 OBJDUMP_LIST += \
 OSLUV.list \
 
+OBJCOPY_HEX += \
+OSLUV.hex \
+
 
 # All Target
 all: main-build
@@ -60,8 +63,8 @@ all: main-build
 main-build: OSLUV.elf secondary-outputs
 
 # Tool invocations
-OSLUV.elf OSLUV.map: $(OBJS) $(USER_OBJS) F:\Unsere_Geräte\Ushio\ Care222\OSLUV\04_Firmware\STM32_LF\STM32G071KBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "OSLUV.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"F:\Unsere_Geräte\Ushio Care222\OSLUV\04_Firmware\STM32_LF\STM32G071KBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="OSLUV.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+OSLUV.elf OSLUV.map: $(OBJS) $(USER_OBJS) F:\Unsere_Geräte\Ushio\ Care222\OSLUV\04_Firmware\OpenExcimer-Software\STM32G071KBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "OSLUV.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"F:\Unsere_Geräte\Ushio Care222\OSLUV\04_Firmware\OpenExcimer-Software\STM32G071KBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="OSLUV.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -75,12 +78,17 @@ OSLUV.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
+OSLUV.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "OSLUV.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) OSLUV.elf OSLUV.list OSLUV.map default.size.stdout
+	-$(RM) OSLUV.elf OSLUV.hex OSLUV.list OSLUV.map default.size.stdout
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'

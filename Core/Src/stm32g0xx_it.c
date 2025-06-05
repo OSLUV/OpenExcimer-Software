@@ -42,10 +42,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-volatile uint16_t upper_24Vsupply = 3158; // 28V
-volatile uint16_t lower_24Vsupply = 2256; // 20V
-volatile uint16_t upper_tempMOSFET = 2482; // 2V = 90°C
-volatile uint16_t upper_iIn = 3962; // 0.8 A
+
+
+uint16_t k_slowIT = 0;
+
+volatile uint16_t risingEdge = 0;
+volatile uint16_t fallingEdge = 0;
+
+
 
 
 /* USER CODE END PV */
@@ -64,7 +68,9 @@ volatile uint16_t upper_iIn = 3962; // 0.8 A
 extern DMA_HandleTypeDef hdma_adc1;
 extern ADC_HandleTypeDef hadc1;
 extern DAC_HandleTypeDef hdac1;
+extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim6;
+extern TIM_HandleTypeDef htim16;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -167,7 +173,7 @@ void DMA1_Channel1_IRQHandler(void)
 	adc_uSenseLamp = adc_buffer[2];
 	adc_iSenseLamp = adc_buffer[3];
 	adc_lampIntensity = adc_buffer[4];
-	adc_iSenseIn = adc_buffer[5]; // 4095 = 0.825 A
+	adc_iSenseIn = adc_buffer[5]; // 2707 = 24V,  4095 = 0.825 A
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
 }
@@ -187,6 +193,23 @@ void ADC1_COMP_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles TIM3 global interrupt.
+  */
+void TIM3_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM3_IRQn 0 */
+
+  /* USER CODE END TIM3_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim3);
+  /* USER CODE BEGIN TIM3_IRQn 1 */
+  //risingEdge = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+  //fallingEdge = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+
+
+  /* USER CODE END TIM3_IRQn 1 */
+}
+
+/**
   * @brief This function handles TIM6, DAC1 and LPTIM1 interrupts (LPTIM1 interrupt through EXTI line 29).
   */
 void TIM6_DAC_LPTIM1_IRQHandler(void)
@@ -198,31 +221,36 @@ void TIM6_DAC_LPTIM1_IRQHandler(void)
   HAL_DAC_IRQHandler(&hdac1);
   /* USER CODE BEGIN TIM6_DAC_LPTIM1_IRQn 1 */
 
-  // timer interrupt
-  enableFlag = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_9); // check enable
-  // check supply voltage
-  if ((adc_24V < upper_24Vsupply) && (adc_24V > lower_24Vsupply)) {
-	  supplyOKFlag = 1;
+  // 1 kHz interrupt
+  tim6_irq_request = 1;
+
+
+  // 1 Hz interrupt
+  if (k_slowIT <1000) {
+	  k_slowIT++;
   }
-  else {
-	  supplyOKFlag = 0;
-  }
-  // check temperature
-  if (adc_tempMOSFET > upper_tempMOSFET) {
-	  OT_flag = 1;
-  }
-  else {
-	  OT_flag = 0;
-  }
-  // check input current
-  if (adc_iSenseIn > upper_iIn) {
-	  OCPinFlag = 1;
-  }
-  else {
-	  OCPinFlag = 0;
+  else if (k_slowIT >999) {
+	  k_slowIT = 0;
+	  tim6_slowIrq_request = 1;
+
   }
 
+
   /* USER CODE END TIM6_DAC_LPTIM1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM16 global interrupt.
+  */
+void TIM16_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM16_IRQn 0 */
+
+  /* USER CODE END TIM16_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim16);
+  /* USER CODE BEGIN TIM16_IRQn 1 */
+
+  /* USER CODE END TIM16_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
