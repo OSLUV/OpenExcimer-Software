@@ -32,6 +32,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define enableUART 0
 
 /* USER CODE END PD */
 
@@ -57,14 +58,15 @@ TIM_HandleTypeDef htim16;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-enum States {INIT, RUN, IGNITE, IGN_FAIL,  ERROR_state};
+enum States {INIT, RUN,  IGNITE, IGN_FAIL,  ERROR_state};
 
 volatile uint32_t arr_buffer;
 
-volatile uint16_t dac_IsenseMOS=1080; // current setpoint for COMP2 in-
-volatile uint16_t dutyMaxIgn = 130; // max. duty cycle for ignition
-volatile uint16_t dutyMax = 150; // max. duty cycle for operation
-// 2A = 1V -> 1241
+volatile uint16_t dac_IsenseMOS=1220; // current setpoint for COMP2 in-
+volatile uint16_t dutyMaxIgn = 110; // max. duty cycle for ignition
+volatile uint16_t dutyMax = 100; // max. duty cycle for operation
+volatile uint16_t ignFrequency = 320; // 50 kHz
+volatile uint16_t operationFrequency = 320; // 50 kHz
 
 uint16_t ignitionCounter = 0;
 uint8_t ignitionFlag = 0;
@@ -75,7 +77,7 @@ uint16_t delayFailedIgnition = 5000;
 uint8_t failedIgnitionCounter = 0;
 uint8_t maxIgnitionAttempts = 4;
 
-uint16_t adc_uSenseLampOpenCircuit = 2200;
+uint16_t adc_uSenseLampOpenCircuit = 2300;
 uint8_t lampOCFlag = 0;
 
 uint8_t numberADCchannels = 6;
@@ -174,8 +176,6 @@ int main(void)
 	// DRV PWM output
 	TIM1->CCMR1 |= TIM_CCMR1_OC1CE; // enable OCREF clear
 	TIM1->CR1 |= TIM_CR1_ARPE; // auto-reload preload
-	//TIM1->ARR = 320; //50 kHz init frequency
-	//TIM1->CCR1 = 0;
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1); // start PWM
 	__HAL_TIM_MOE_ENABLE(&htim1); //master enable
 
@@ -231,7 +231,7 @@ int main(void)
 
 		// ------------ Interrupts -----------------------
 		// interrupt 1 Hz for UART send
-		if (tim6_slowIrq_request) {
+		if (tim6_slowIrq_request && enableUART) {
 			tim6_slowIrq_request = 0;
 			sendInt16UART();
 		}
@@ -250,13 +250,6 @@ int main(void)
 
 			// checked in all states
 			// check lamp voltage
-			if (adc_uSenseLamp>adc_uSenseLampOpenCircuit) {
-				lampOCFlag = 1;
-			}
-			else {
-				lampOCFlag = 0;
-			}
-
 
 			// check supply voltage
 			if ((adc_24V < upper_24Vsupply) && (adc_24V > lower_24Vsupply)) {
@@ -294,6 +287,7 @@ int main(void)
 
 			// set DRV to zero
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+			TIM1->ARR=ignFrequency; //50 kHz
 
 			// exit conditions
 			if (errorFlag) {
@@ -314,15 +308,17 @@ int main(void)
 				if (ignitionCounter < maxIgnitionTime) { // try ignition
 					HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_RESET); // disable Status LED
 					__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, dutyMaxIgn); // high energy ignition
+					TIM1->ARR = ignFrequency;
 					HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET); // enable UV-LED
-					if (adc_iSenseLamp > adc_iSenseLampIgnited && adc_uSenseLamp < adc_uSenseLampIgnited) {
+					//if (adc_iSenseLamp > adc_iSenseLampIgnited && adc_uSenseLamp < adc_uSenseLampIgnited) {
+					if (adc_iSenseLamp > adc_iSenseLampIgnited && ignitionCounter > 100) { // minimum ignition time 100 ms
 						HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET); // disable UV-LED
 						ignitionFlag = 1;
 						state = RUN;
 					}
 
-					/*if (ignitionCounter > 30) { // start checking after 30 ms
-						if (OT_flag || errorFlag || lampOCFlag) {
+					/*if (ignitionCounter > 1000) { // start checking after 100 ms
+						if (OT_flag || errorFlag || (adc_uSenseLamp>adc_uSenseLampOpenCircuit)) {
 							state = ERROR_state;
 						}
 					}*/
@@ -354,22 +350,24 @@ int main(void)
 			state = INIT;
 			break;
 
+
 		case RUN:
 			// RUN code
 			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET); // enable status LED
-
+			TIM1->ARR=operationFrequency;
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, dutyMax); // max. duty cycle limiting
 			HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_IsenseMOS); // set current limiting value
 
 			// exit conditions
-			if (errorFlag == 1) {
-				state = ERROR_state;
-			}
+
 			if (enableFlag == 0 || supplyOKFlag == 0) {
 				state = INIT;
 			}
 
-			if (OT_flag || errorFlag || lampOCFlag) {
+			/*if (OT_flag || errorFlag || (adc_uSenseLamp>adc_uSenseLampOpenCircuit)) {
+				state = ERROR_state;
+			}*/
+			if (OT_flag ) {
 				state = ERROR_state;
 			}
 
