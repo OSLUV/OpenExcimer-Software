@@ -99,7 +99,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
   /** Initializes the peripherals clocks
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
-    PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_SYSCLK;
+    PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLADC;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
       Error_Handler();

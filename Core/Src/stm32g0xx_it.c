@@ -49,7 +49,9 @@ uint16_t k_slowIT = 0;
 volatile uint16_t risingEdge = 0;
 volatile uint16_t fallingEdge = 0;
 
-
+uint8_t iADCchannels = 0;
+uint16_t currentMeasurement = 0;
+uint16_t weightedOldValue = 0;
 
 
 /* USER CODE END PV */
@@ -168,12 +170,19 @@ void DMA1_Channel1_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
 
 	// All ADC channels transferred via DMA
-	adc_24V = adc_buffer[0]; // 4095 = 36.3 V
-	adc_tempMOSFET = adc_buffer[1]; // 2482 = 2V = 90°C
-	adc_uSenseLamp = adc_buffer[2];
-	adc_iSenseLamp = adc_buffer[3];
-	adc_lampIntensity = adc_buffer[4];
-	adc_iSenseIn = adc_buffer[5]; // 2707 = 24V,  4095 = 0.825 A
+  for (iADCchannels = 0; iADCchannels < numberADCchannels; iADCchannels++) {
+	  currentMeasurement = adc_DMA[iADCchannels]>>2; // divide current measurement value by 4
+	  weightedOldValue = (adc_buffer[iADCchannels][0]*3)>>2; // multiply with 3/4
+	  adc_buffer[iADCchannels][1] = currentMeasurement + weightedOldValue; // new averaged value
+	  adc_buffer[iADCchannels][0] = adc_buffer[iADCchannels][1]; // transfer value from current to old
+  }
+
+	adc_24V = adc_buffer[0][1]; // 4095 = 36.3 V
+	adc_tempMOSFET = adc_buffer[1][1]; // 2482 = 2V = 90°C
+	adc_uSenseLamp = adc_buffer[2][1];
+	adc_iSenseLamp = adc_buffer[3][1];
+	adc_lampIntensity = adc_buffer[4][1];
+	adc_iSenseIn = adc_buffer[5][1]; // 2707 = 24V,  4095 = 0.825 A
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
 }
