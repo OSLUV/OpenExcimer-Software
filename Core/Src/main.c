@@ -67,9 +67,11 @@ volatile uint32_t arr_buffer;
 //volatile uint16_t dac_IsenseMOS=383; // current setpoint for COMP2 in-
 //volatile uint16_t dac_IsenseMOS=568; // current setpoint for COMP2 in-
 //volatile uint16_t dac_IsenseMOS=700; // current setpoint for COMP2 in-
-volatile uint16_t dac_IsenseMOS=450; // current setpoint for COMP2 in-
+// volatile uint16_t dac_IsenseMOS=450; // current setpoint for COMP2 in-
+volatile uint16_t dac_IsenseMOS=600; // current setpoint for COMP2 in- for open loop
 volatile uint16_t dutyMaxIgn = 110; // max. duty cycle for ignition
-volatile uint16_t dutyMax = 95; // max. duty cycle for operation
+//volatile uint16_t dutyMax = 95; // max. duty cycle for operation
+volatile uint16_t dutyMax = 72; // duty cycle for operation open loop
 volatile uint16_t ignFrequency = 320; // 50 kHz
 //volatile uint16_t operationFrequency = 133; // 120 kHz
 volatile uint16_t operationFrequency = 178; // 90 kHz
