@@ -69,12 +69,14 @@ volatile uint32_t arr_buffer;
 //volatile uint16_t dac_IsenseMOS=700; // current setpoint for COMP2 in-
 // volatile uint16_t dac_IsenseMOS=450; // current setpoint for COMP2 in-
 volatile uint16_t dac_IsenseMOS=600; // current setpoint for COMP2 in- for open loop
-volatile uint16_t dutyMaxIgn = 110; // max. duty cycle for ignition
+volatile uint16_t dutyMaxIgn = 130; // max. duty cycle for ignition
 //volatile uint16_t dutyMax = 95; // max. duty cycle for operation
-volatile uint16_t dutyMax = 72; // duty cycle for operation open loop
+//volatile uint16_t dutyMax = 72; // duty cycle for operation open loop
+volatile uint16_t dutyMax = 101; // duty cycle for operation open loop, Ushio transformer
 volatile uint16_t ignFrequency = 320; // 50 kHz
 //volatile uint16_t operationFrequency = 133; // 120 kHz
-volatile uint16_t operationFrequency = 178; // 90 kHz
+//volatile uint16_t operationFrequency = 178; // 90 kHz
+volatile uint16_t operationFrequency = 164; // 97 kHz
 //volatile uint16_t operationFrequency = 303; // 52.8 kHz
 //volatile uint16_t operationFrequency = 320; // 50 kHz
 
@@ -321,8 +323,8 @@ int main(void)
 					TIM1->ARR = ignFrequency;
 					HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET); // enable UV-LED
 					//if (adc_iSenseLamp > adc_iSenseLampIgnited && adc_uSenseLamp < adc_uSenseLampIgnited) {
-					if (adc_iSenseLamp > adc_iSenseLampIgnited && ignitionCounter > 1000) { // minimum ignition time 1000 ms
-					//if ( ignitionCounter > 1000) { // minimum ignition time 1000 ms
+					//if (adc_iSenseLamp > adc_iSenseLampIgnited && ignitionCounter > 1000) { // minimum ignition time 1000 ms
+					if ( ignitionCounter > 1000) { // minimum ignition time 1000 ms
 						HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET); // disable UV-LED
 						ignitionFlag = 1;
 						state = RUN;
