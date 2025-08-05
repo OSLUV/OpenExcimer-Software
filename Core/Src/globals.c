@@ -22,6 +22,7 @@ volatile uint16_t adc_buffer[6][2] = {{0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0}};
 
 
 
+
 volatile uint16_t adc_24V = 0;
 volatile uint16_t adc_tempMOSFET = 0;
 volatile uint16_t adc_uSenseLamp = 0;

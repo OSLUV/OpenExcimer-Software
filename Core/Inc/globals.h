@@ -23,6 +23,7 @@ extern volatile uint8_t tim6_slowIrq_request;
 extern volatile uint16_t adc_buffer[6][2]; // 6 ADC channels
 extern volatile uint16_t adc_DMA[6]; // 6 ADC channels
 
+
 extern volatile uint16_t adc_24V;
 extern volatile uint16_t adc_tempMOSFET;
 extern volatile uint16_t adc_uSenseLamp;
