@@ -174,7 +174,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 			if (value <= 10)
 			{
-				if (value == 0)
+				if (value < 1)
 				{
 					uartEnableFlag = 0; // turn off if zero
 					powerLevel = 1; // clip lowest value
