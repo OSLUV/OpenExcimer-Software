@@ -18,8 +18,8 @@ volatile uint8_t tim6_slowIrq_request = 0;
 
 // volatile uint16_t adc_buffer[6] = {0, 0, 0, 0, 0, 0}; // 6 ADC channels
 volatile uint16_t adc_DMA[6] = {0, 0, 0, 0, 0, 0}; // 6 ADC channels
-volatile uint16_t adc_buffer[6][2] = {{0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0}}; // 6 ADC channels, Old and New value
-
+//volatile uint16_t adc_buffer[6][2] = {{0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0}}; // 6 ADC channels, Old and New value
+volatile uint16_t adc_buffer[6] = {0,0,0,0,0,0}; // 6 ADC channels, Old and New value
 
 
 

@@ -69,10 +69,6 @@ void Error_Handler(void);
 #define temp_MOSFET_GPIO_Port GPIOA
 #define Usense_Lamp_Pin GPIO_PIN_3
 #define Usense_Lamp_GPIO_Port GPIOA
-#define Ilevel_DAC_Pin GPIO_PIN_4
-#define Ilevel_DAC_GPIO_Port GPIOA
-#define DAC2_Pin GPIO_PIN_5
-#define DAC2_GPIO_Port GPIOA
 #define Status_Pin GPIO_PIN_7
 #define Status_GPIO_Port GPIOA
 #define IsenseLamp_Pin GPIO_PIN_0
@@ -89,10 +85,12 @@ void Error_Handler(void);
 #define PWM_out_ALIVE_GPIO_Port GPIOC
 #define Isense_MOS_Pin GPIO_PIN_4
 #define Isense_MOS_GPIO_Port GPIOB
-#define DRV_Mask_Pin GPIO_PIN_5
-#define DRV_Mask_GPIO_Port GPIOB
+#define PWM_IN_Pin GPIO_PIN_5
+#define PWM_IN_GPIO_Port GPIOB
 #define UV_LED_Pin GPIO_PIN_6
 #define UV_LED_GPIO_Port GPIOB
+#define MASK_Pin GPIO_PIN_8
+#define MASK_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

@@ -76,9 +76,10 @@ volatile uint32_t arr_buffer;
 
 
 volatile uint16_t dac_IsenseMOS=1000; // current setpoint for COMP2 in- for open loop
-volatile uint16_t dutyMaxIgn = 200; // max. duty cycle for ignition
-volatile uint16_t dutyMax = 146; // max. duty cycle for operation
-
+// normal operation
+volatile uint16_t dutyMaxIgn = 220; // max. duty cycle for ignition
+volatile uint16_t dutyMax = 145; // max. duty cycle for operation
+// ignition
 volatile uint16_t ignFrequency = 640; // 50 kHz
 volatile uint16_t operationFrequency = 356; // 90 kHz
 
@@ -102,7 +103,7 @@ uint16_t operationPoints[10][2] = {
     {154,  500},
     {148,  448},
     {148,  408},
-    {146,  356}
+    {145,  354} // adapted
 };  // index is power level, array is {CCR ARR}
 
 
@@ -136,13 +137,13 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_COMP2_Init(void);
-static void MX_DAC1_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_DAC1_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -164,12 +165,13 @@ static void MX_NVIC_Init(void);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 
+
 	if (huart->Instance == USART2) {
 
 		if (uart_rx_byte == '\n' || uart_rx_byte == '\r')  // End of input
 		{
 			uart_rx_buffer[uart_index] = '\0';
-
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15); // enable status LED
 
 			if (uart_rx_buffer[0]=='F') // Change frequency
 			{
@@ -206,7 +208,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			}
 			else if (uart_rx_buffer[0]=='D') // report ADC DATA
 			{
-				snprintf(msg, sizeof(msg), "Ui %04d, T %04d, Ul %04d, Il %04d, Li %04d, Ii %04d\r\n",  adc_buffer[0][1], adc_buffer[1][1], adc_buffer[2][1], adc_buffer[3][1], adc_buffer[4][1], adc_buffer[5][1]);
+//				snprintf(msg, sizeof(msg), "Ui %04d, T %04d, Ul %04d, Il %04d, Li %04d, Ii %04d\r\n",  adc_buffer[0][1], adc_buffer[1][1], adc_buffer[2][1], adc_buffer[3][1], adc_buffer[4][1], adc_buffer[5][1]);
+				snprintf(msg, sizeof(msg), "Ui %04d, T %04d, Ul %04d, Il %04d, Li %04d, Ii %04d\r\n",  adc_buffer[0], adc_buffer[1], adc_buffer[2], adc_buffer[3], adc_buffer[4], adc_buffer[5]);
+
 				HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), UART_DELAY);
 			}
 			else if (uart_rx_buffer[0]=='T') // report TIMER data
@@ -289,21 +293,24 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_COMP2_Init();
-  MX_DAC1_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM16_Init();
   MX_USART2_UART_Init();
   MX_TIM6_Init();
+  MX_DAC1_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 
+
 	// synchronous timing interrupts
 	TIM6->ARR = 1000;
 	HAL_TIM_Base_Start_IT(&htim6);
+
+
 
 	// DRV PWM output
 	TIM1->CCMR1 |= TIM_CCMR1_OC1CE; // enable OCREF clear
@@ -311,13 +318,16 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1); // start PWM
 	__HAL_TIM_MOE_ENABLE(&htim1); //master enable
 
+
+
 	// Start DAC
 	HAL_DAC_Start(&hdac1, DAC_CHANNEL_1); // DAC for current setpoint (intput to Comp2 in-)
 	HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 4095); // disable current limit for init
 	HAL_COMP_Start(&hcomp2); // start comparator for peak current control
 
+
 	// Start ADC
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_DMA, numberADCchannels); // start ADC with DMA, 6 channels
+	//HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_DMA, numberADCchannels); // start ADC with DMA, 6 channels
 	/*
 	 * 0 = Ch0: 24V
 	 * 1 = Ch1: Temperature MOSFET
@@ -326,6 +336,14 @@ int main(void)
 	 * 4 = Ch9: Lamp Intensity
 	 * 5 = Ch10: Isense_In
 	 */
+
+	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
+		HAL_Delay(500);
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
+		HAL_Delay(500);
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
+		HAL_Delay(500);
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
 
 
 	HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
@@ -344,13 +362,7 @@ int main(void)
 	enum States state = INIT;
 
 	// blink LED
-	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
-	HAL_Delay(500);
-	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
-	HAL_Delay(500);
-	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
-	HAL_Delay(500);
-	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15);
+
 
 
   /* USER CODE END 2 */
@@ -365,8 +377,10 @@ int main(void)
 
 		// ------------ Interrupts -----------------------
 		// interrupt 1 Hz for UART send
-		if (tim6_slowIrq_request && enableUART) {
+		if (tim6_slowIrq_request) {
 			tim6_slowIrq_request = 0;
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15); // enable status LED
+
 			//sendInt16UART();
 		}
 
@@ -490,7 +504,7 @@ int main(void)
 
 		case RUN:
 			// RUN code
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET); // enable status LED
+//			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET); // enable status LED
 			TIM1->ARR=operationFrequency;
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, dutyMax); // max. duty cycle limiting
 			HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_IsenseMOS); // set current limiting value
@@ -564,11 +578,11 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
     Error_Handler();
   }
@@ -583,9 +597,6 @@ static void MX_NVIC_Init(void)
   /* TIM6_DAC_LPTIM1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM6_DAC_LPTIM1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(TIM6_DAC_LPTIM1_IRQn);
-  /* ADC1_COMP_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(ADC1_COMP_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(ADC1_COMP_IRQn);
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
@@ -631,8 +642,8 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
   hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  hadc1.Init.SamplingTimeCommon1 = ADC_SAMPLETIME_79CYCLES_5;
-  hadc1.Init.SamplingTimeCommon2 = ADC_SAMPLETIME_79CYCLES_5;
+  hadc1.Init.SamplingTimeCommon1 = ADC_SAMPLETIME_39CYCLES_5;
+  hadc1.Init.SamplingTimeCommon2 = ADC_SAMPLETIME_39CYCLES_5;
   hadc1.Init.OversamplingMode = DISABLE;
   hadc1.Init.TriggerFrequencyMode = ADC_TRIGGER_FREQ_HIGH;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -765,18 +776,10 @@ static void MX_DAC1_Init(void)
   */
   sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
   sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
   sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_ENABLE;
   sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
   if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** DAC channel OUT2 config
-  */
-  sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
-  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1028,7 +1031,8 @@ static void MX_TIM16_Init(void)
 
   /* USER CODE END TIM16_Init 0 */
 
-  TIM_IC_InitTypeDef sConfigIC = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
   /* USER CODE BEGIN TIM16_Init 1 */
 
@@ -1044,21 +1048,37 @@ static void MX_TIM16_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_IC_Init(&htim16) != HAL_OK)
+  if (HAL_TIM_PWM_Init(&htim16) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0;
-  if (HAL_TIM_IC_ConfigChannel(&htim16, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(&htim16, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.BreakFilter = 0;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim16, &sBreakDeadTimeConfig) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN TIM16_Init 2 */
 
   /* USER CODE END TIM16_Init 2 */
+  HAL_TIM_MspPostInit(&htim16);
 
 }
 
