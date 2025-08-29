@@ -72,6 +72,7 @@ uint16_t weightedOldValue = 0;
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
+extern ADC_HandleTypeDef hadc1;
 extern DAC_HandleTypeDef hdac1;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim6;
@@ -174,29 +175,33 @@ void DMA1_Channel1_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
 
 	// All ADC channels transferred via DMA
-  for (iADCchannels = 0; iADCchannels < numberADCchannels; iADCchannels++) {
-	    uint32_t old_val = adc_buffer[iADCchannels];
-	    uint32_t new_val = adc_DMA[iADCchannels];
-
-	    // "second order" EMA
-	    old_val = (old_val * 7 + new_val+4) >> 3;  // Weighted average: (old_val * 7/8 + new_val*1/8)
-	    old_val = (old_val * 7 + new_val+4) >> 3;  // Weighted average: (old_val * 7/8 + new_val*1/8)
-	    adc_buffer[iADCchannels] = (uint16_t)old_val;
-
-//	  currentMeasurement = adc_DMA[iADCchannels]>>2; // divide current measurement value by 4
-//	  weightedOldValue = (adc_buffer[iADCchannels][0]*3)>>2; // multiply with 3/4
-//	  adc_buffer[iADCchannels][1] = currentMeasurement + weightedOldValue; // new averaged value
-//	  adc_buffer[iADCchannels][0] = adc_buffer[iADCchannels][1]; // transfer value from current to old
+  for (int ch = 0; ch < numberADCchannels; ch++) {
+      adc_buffer[ch] = (adc_buffer[ch] * 3 + (adc_DMA[ch])) >> 2;
   }
 
-	adc_24V = adc_buffer[0]; // 4095 = 36.3 V
-	adc_tempMOSFET = adc_buffer[1]; // 2482 = 2V = 90°C
-	adc_uSenseLamp = adc_buffer[2];
-	adc_iSenseLamp = adc_buffer[3];
-	adc_lampIntensity = adc_buffer[4];
-	adc_iSenseIn = adc_buffer[5]; // 2707 = 24V,  4095 = 0.825 A
+  // Assign named channels
+  adc_24V          = adc_buffer[0]; // 4095 = 36.3 V
+  adc_tempMOSFET   = adc_buffer[1]; // 2482 = 2V = 90°C
+  adc_uSenseLamp   = adc_buffer[2];
+  adc_iSenseLamp   = adc_buffer[3];
+  adc_lampIntensity= adc_buffer[4];
+  adc_iSenseIn     = adc_buffer[5]; // 2707 = 24V, 4095 = 0.825 A
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles ADC1, COMP1 and COMP2 interrupts (COMP interrupts through EXTI lines 17 and 18).
+  */
+void ADC1_COMP_IRQHandler(void)
+{
+  /* USER CODE BEGIN ADC1_COMP_IRQn 0 */
+
+  /* USER CODE END ADC1_COMP_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc1);
+  /* USER CODE BEGIN ADC1_COMP_IRQn 1 */
+
+  /* USER CODE END ADC1_COMP_IRQn 1 */
 }
 
 /**
