@@ -46,12 +46,16 @@
 #define TMR_COUNTER 16000
 #define UART_DELAY 10
 
-#define MIN_IGNITION_TIME 1000
-#define ULAMP_MAX 1154
+#define MIN_IGNITION_TIME 500 // 500 ms
+#define ULAMP_MAX 1100 // for open circuit detection
+#define ILAMP_IGNITED 500 // ca. 400 mV
+
 #define UPPER_24VSUPPLY 3159 // 27V
 #define LOWER_24VSUPPLY 2256 // 19V
-#define UPPER_TEMP_MOSFET 2070 // ca. 90°C   0,6V = 25°C 790 = 43 °C
+#define UPPER_TEMP_MOSFET 500 // 400 mV = ca. 75 °C
 #define UPPER_I_IN 2600
+
+
 
 /* USER CODE END PD */
 
@@ -85,9 +89,9 @@ volatile uint32_t arr_buffer;
 
 volatile uint16_t dac_IsenseMOS = 1000; // current setpoint for COMP2 in- for open loop
 volatile uint16_t dutyMaxIgn = 100; // max. duty cycle for ignition
-volatile uint16_t ignFrequency = 320; // 50 kHz
+volatile uint16_t ignFrequency = 320; // 58 kHz
 
-volatile uint16_t chargeTimeOperation = 67; // duty cycle for operation open loop, optimized
+volatile uint16_t chargeTimeOperation = 65; // duty cycle for operation open loop, optimized
 volatile uint16_t operationFrequency = 164; // 70 kHz
 
 
@@ -110,14 +114,14 @@ uint16_t operationPoints[10][2] = {
 		{77,  250},
 		{74,  224},
 		{74,  204},
-		{67,  164}
+		{65,  164}
 };  // index is power level, array is {CCR ARR}
 
 
 
 uint16_t ignitionCounter = 0;
 uint8_t ignitionFlag = 0;
-uint16_t adc_iSenseLampIgnited = 300;
+
 uint16_t adc_uSenseLampIgnited = 1800;
 uint16_t maxIgnitionTime = 3000;
 uint16_t delayFailedIgnition = 5000;
@@ -414,12 +418,10 @@ int main(void)
 
 		}
 
-		// check in all states
-		/*
-		if (adc_uSenseLamp > ULAMP_MAX) {
-			state = ERROR_state;
-		}
-		*/
+		// check in all states - high priority
+
+
+
 
 		// ------------ ASM -----------------------
 		switch (state) {
@@ -436,10 +438,7 @@ int main(void)
 
 
 			// exit conditions
-			if (errorFlag) {
-				state = ERROR_state;
-			}
-			if (enableFlag  && supplyOKFlag ) {
+			if (enableFlag  && supplyOKFlag && !OT_flag) {
 				snprintf(msg, sizeof(msg), "IGNITE\r\n");
 				HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), UART_DELAY);
 				state = IGNITE;
@@ -459,7 +458,7 @@ int main(void)
 					TIM1->ARR = ignFrequency;
 					HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET); // enable UV-LED
 					//if (adc_iSenseLamp > adc_iSenseLampIgnited && adc_uSenseLamp < adc_uSenseLampIgnited) {
-					if (adc_iSenseLamp > adc_iSenseLampIgnited
+					if (adc_iSenseLamp > ILAMP_IGNITED
 							&& ignitionCounter > MIN_IGNITION_TIME) { // minimum ignition time 1000 ms
 					//if ( ignitionCounter > 1000) { // minimum ignition time 1000 ms
 						HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET); // disable UV-LED
@@ -522,7 +521,7 @@ int main(void)
 				state = ERROR_state;
 			}*/
 			if (OT_flag ) {
-				state = ERROR_state;
+				state = INIT;
 			}
 
 
