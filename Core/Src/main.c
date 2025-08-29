@@ -77,11 +77,11 @@ volatile uint32_t arr_buffer;
 
 volatile uint16_t dac_IsenseMOS=1000; // current setpoint for COMP2 in- for open loop
 // normal operation
-volatile uint16_t dutyMaxIgn = 220; // max. duty cycle for ignition
-volatile uint16_t dutyMax = 145; // max. duty cycle for operation
+volatile uint16_t dutyMaxIgn = 200; // max. duty cycle for ignition
+volatile uint16_t dutyMax = 134; // max. duty cycle for operation
 // ignition
 volatile uint16_t ignFrequency = 640; // 50 kHz
-volatile uint16_t operationFrequency = 356; // 90 kHz
+volatile uint16_t operationFrequency = 330; // 97 kHz
 
 
 char uart_rx_buffer[RX_BUFFER_SIZE];
@@ -103,7 +103,7 @@ uint16_t operationPoints[10][2] = {
     {154,  500},
     {148,  448},
     {148,  408},
-    {145,  354} // adapted
+    {134,  320} // adapted to 97 kHz
 };  // index is power level, array is {CCR ARR}
 
 
@@ -801,8 +801,8 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 0 */
 
-  TIM_ClearInputConfigTypeDef sClearInputConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIMEx_BreakInputConfigTypeDef sBreakInputConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
@@ -820,16 +820,17 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sClearInputConfig.ClearInputState = ENABLE;
-  sClearInputConfig.ClearInputSource = TIM_CLEARINPUTSOURCE_COMP2;
-  if (HAL_TIM_ConfigOCrefClear(&htim1, &sClearInputConfig, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakInputConfig.Source = TIM_BREAKINPUTSOURCE_BKIN;
+  sBreakInputConfig.Enable = TIM_BREAKINPUTSOURCE_ENABLE;
+  sBreakInputConfig.Polarity = TIM_BREAKINPUTSOURCE_POLARITY_HIGH;
+  if (HAL_TIMEx_ConfigBreakInput(&htim1, TIM_BREAKINPUT_BRK, &sBreakInputConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -848,8 +849,8 @@ static void MX_TIM1_Init(void)
   sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
   sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
   sBreakDeadTimeConfig.DeadTime = 0;
-  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
-  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_ENABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_LOW;
   sBreakDeadTimeConfig.BreakFilter = 0;
   sBreakDeadTimeConfig.BreakAFMode = TIM_BREAK_AFMODE_INPUT;
   sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
