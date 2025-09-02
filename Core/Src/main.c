@@ -219,7 +219,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			}
 			else if (uart_rx_buffer[0]=='T') // report TIMER data
 			{
-				snprintf(msg, sizeof(msg), "ARR: %d, CCR: %d\r\n",  operationFrequency, chargeTimeOperation);
+				value =  (uint16_t)((TMR_COUNTER + operationFrequency / 2) / operationFrequency);
+				snprintf(msg, sizeof(msg), "F: %d kHz, ARR: %d, CCR: %d\r\n",  value, operationFrequency, chargeTimeOperation);
 				HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), UART_DELAY);
 			}
 			else { // dimming levels
