@@ -31,3 +31,6 @@ volatile uint16_t adc_iSenseIn = 0;
 volatile uint16_t dutyControl = 0;
 
 volatile uint8_t numberADCchannels = 6;
+
+extern volatile uint32_t risingEdge = 0;
+extern volatile uint32_t fallingEdge = 0;

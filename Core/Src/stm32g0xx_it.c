@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    stm32g0xx_it.c
-  * @brief   Interrupt Service Routines.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    stm32g0xx_it.c
+ * @brief   Interrupt Service Routines.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -50,8 +50,8 @@
 
 uint16_t k_slowIT = 0;
 
-volatile uint16_t risingEdge = 0;
-volatile uint16_t fallingEdge = 0;
+//volatile uint16_t risingEdge = 0;
+//volatile uint16_t fallingEdge = 0;
 
 uint8_t iADCchannels = 0;
 uint16_t currentMeasurement = 0;
@@ -94,9 +94,9 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-   while (1)
-  {
-  }
+	while (1)
+	{
+	}
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
@@ -174,18 +174,18 @@ void DMA1_Channel1_IRQHandler(void)
   HAL_DMA_IRQHandler(&hdma_adc1);
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
 
-	// All ADC channels transferred via DMA
-  for (int ch = 0; ch < numberADCchannels; ch++) {
-      adc_buffer[ch] = (adc_buffer[ch] * 3 + (adc_DMA[ch])) >> 2;
-  }
+	// All ADC channels transferred via DMA, weighted moving average filter
+	for (int ch = 0; ch < numberADCchannels; ch++) {
+		adc_buffer[ch] = (adc_buffer[ch] * 3 + (adc_DMA[ch])) >> 2;
+	}
 
-  // Assign named channels
-  adc_24V          = adc_buffer[0]; // 4095 = 36.3 V
-  adc_tempMOSFET   = adc_buffer[1]; // 2482 = 2V = 90°C
-  adc_uSenseLamp   = adc_buffer[2];
-  adc_iSenseLamp   = adc_buffer[3];
-  adc_lampIntensity= adc_buffer[4];
-  adc_iSenseIn     = adc_buffer[5]; // 2707 = 24V, 4095 = 0.825 A
+	// Assign named channels
+	adc_24V          = adc_buffer[0]; // 4095 = 36.3 V
+	adc_tempMOSFET   = adc_buffer[1]; // 2482 = 2V = 90°C
+	adc_uSenseLamp   = adc_buffer[2];
+	adc_iSenseLamp   = adc_buffer[3];
+	adc_lampIntensity= adc_buffer[4];
+	adc_iSenseIn     = adc_buffer[5]; // 2707 = 24V, 4095 = 0.825 A
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
 }
@@ -214,8 +214,8 @@ void TIM3_IRQHandler(void)
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
-  //risingEdge = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-  //fallingEdge = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+	risingEdge = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_2);
+	fallingEdge = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_1);
 
 
   /* USER CODE END TIM3_IRQn 1 */
@@ -233,19 +233,17 @@ void TIM6_DAC_LPTIM1_IRQHandler(void)
   HAL_DAC_IRQHandler(&hdac1);
   /* USER CODE BEGIN TIM6_DAC_LPTIM1_IRQn 1 */
 
-  // 1 kHz interrupt
-  tim6_irq_request = 1;
+	// 1 kHz interrupt
+	tim6_irq_request = 1;
 
 
-  // 1 Hz interrupt
-  if (k_slowIT <1000) {
-	  k_slowIT++;
-  }
-  else if (k_slowIT >999) {
-	  k_slowIT = 0;
-	  tim6_slowIrq_request = 1;
+	// 10 Hz interrupt
 
-  }
+	if (k_slowIT >9) {
+		k_slowIT = 0;
+		tim6_slowIrq_request = 1;
+	}
+	else { k_slowIT++;}
 
 
   /* USER CODE END TIM6_DAC_LPTIM1_IRQn 1 */

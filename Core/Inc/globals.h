@@ -35,4 +35,8 @@ extern volatile uint16_t dutyControl;
 
 extern volatile uint8_t numberADCchannels;
 
+extern volatile uint32_t risingEdge;
+extern volatile uint32_t fallingEdge;
+
+
 #endif /* INC_GLOBALS_H_ */
