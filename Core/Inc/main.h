@@ -69,10 +69,6 @@ void Error_Handler(void);
 #define temp_MOSFET_GPIO_Port GPIOA
 #define Usense_Lamp_Pin GPIO_PIN_3
 #define Usense_Lamp_GPIO_Port GPIOA
-#define Ilevel_DAC_Pin GPIO_PIN_4
-#define Ilevel_DAC_GPIO_Port GPIOA
-#define DAC2_Pin GPIO_PIN_5
-#define DAC2_GPIO_Port GPIOA
 #define Status_Pin GPIO_PIN_7
 #define Status_GPIO_Port GPIOA
 #define IsenseLamp_Pin GPIO_PIN_0

@@ -48,7 +48,7 @@
 #define TMR_COUNTER 16000
 #define UART_DELAY 10
 
-#define MIN_IGNITION_TIME 500 // 500 ms
+#define MIN_IGNITION_TIME 1000 // 1000 ms
 #define ULAMP_MAX 1100 // for open circuit detection / not used
 #define ILAMP_IGNITED 650 // ca. 650 mV
 
@@ -57,7 +57,7 @@
 #define UPPER_TEMP_MOSFET 500 // 400 mV = ca. 75 °C
 #define UPPER_I_IN 2600
 
-#define primInductance 15
+#define primInductance 20
 #define peakCurrentControl 1
 
 
@@ -75,8 +75,6 @@ DMA_HandleTypeDef hdma_adc1;
 COMP_HandleTypeDef hcomp2;
 
 DAC_HandleTypeDef hdac1;
-
-I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
@@ -117,18 +115,7 @@ uint8_t uartEnableFlag = 1;
 uint8_t powerLevel = 100; // linear dimming steps: 100 = full power, 15 = 15% power
 // power setting by frequency control 0 - 105%, minimal power is 15% = 20 kHz
 uint16_t freqPowerSetting[106] = {1146, 1146, 1146, 1146, 1146, 1146, 1146, 1146, 1146, 1146, 1065, 995, 934, 879, 831, 788, 750, 715, 683, 654, 627, 603, 580, 559, 540, 522, 505, 489, 474, 460, 447, 435, 423, 412, 402, 392, 382, 374, 365, 357, 349, 342, 335, 328, 321, 315, 309, 303, 298, 293, 287, 283, 278, 273, 269, 265, 260, 256, 253, 249, 245, 242, 238, 235, 232, 229, 226, 223, 220, 217, 214, 212, 209, 207, 204, 202, 200, 197, 195, 193, 191, 189, 187, 185, 183, 181, 179, 178, 176, 174, 172, 171, 169, 168, 166, 165, 163, 162, 160, 159, 158, 156, 155, 154, 152, 151};
-uint16_t operationPoints[10][2] = {
-		{61,  1000},
-		{78,  860},
-		{78,  597},
-		{78,  447},
-		{78,  351},
-		{77,  296},
-		{77,  250},
-		{74,  224},
-		{74,  204},
-		{68,  164}
-};  // index is power level, array is {CCR ARR}
+
 
 
 
@@ -164,7 +151,6 @@ static void MX_TIM3_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM6_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -316,8 +302,12 @@ int main(void)
 		dutyMaxIgn = 120;
 		dac_IsenseMOS = 525; // 530
 		chargeTimeOperation = 49;
+	} else if (primInductance == 20) {
+		dutyMaxIgn = 120;
+		dac_IsenseMOS = 465; // 530
+		chargeTimeOperation = 55;
 	}
-	//49/ 64 / 65 / 82
+
 
 	if (peakCurrentControl) {
 		chargeTimeOperation = chargeTimeOperation +5; // used as fall-back for maximum limiting
@@ -348,7 +338,6 @@ int main(void)
   MX_TIM16_Init();
   MX_USART2_UART_Init();
   MX_TIM6_Init();
-  MX_I2C1_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -589,8 +578,8 @@ int main(void)
 			// ERROR code
 			// set DRV to zero
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-			snprintf(msg, sizeof(msg), "ERROR\r\n");
-			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), UART_DELAY);
+			//snprintf(msg, sizeof(msg), "ERROR\r\n");
+			//HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), UART_DELAY);
 
 			// communicate error (blink LED, UART)
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_15); //  LED
@@ -838,72 +827,16 @@ static void MX_DAC1_Init(void)
   */
   sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
   sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
   sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_ENABLE;
   sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
   if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
   }
-
-  /** DAC channel OUT2 config
-  */
-  sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
-  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN DAC1_Init 2 */
 
   /* USER CODE END DAC1_Init 2 */
-
-}
-
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00503D58;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
 
 }
 
