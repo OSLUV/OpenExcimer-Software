@@ -160,15 +160,6 @@ static void MX_NVIC_Init(void);
 /* USER CODE BEGIN 0 */
 
 
-// void sendInt16UART() // UART Transmit
-//{
-//
-//uint8_t buffer[36];
-//sprintf(buffer, "%04d, %04d, %04d, %04d, %04d, %04d\r\n", adc_buffer[0][1], adc_buffer[1][1], adc_buffer[2][1], adc_buffer[3][1], adc_buffer[4][1], adc_buffer[5][1]);
-//
-//HAL_UART_Transmit(&huart2, buffer, strlen(buffer), 10);
-//}
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 
@@ -372,10 +363,6 @@ int main(void)
 
 	HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
 
-	// alive PWM output
-	//HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-	//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // DRV Mask PWM output
-
 	// TIM3 for input capture - read PWM for power setting.
 	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2); // Primary channel - rising edge
 	HAL_TIM_IC_Start(&htim3, TIM_CHANNEL_1);    // Secondary channel - falling edge
@@ -397,8 +384,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	//snprintf(msg, sizeof(msg), "INIT\r\n");
-	//HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), UART_DELAY);
+
 	while (1)
 	{
     /* USER CODE END WHILE */
