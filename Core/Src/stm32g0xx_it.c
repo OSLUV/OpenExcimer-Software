@@ -182,10 +182,9 @@ void DMA1_Channel1_IRQHandler(void)
 	// Assign named channels
 	adc_24V          = adc_buffer[0]; // 4095 = 36.3 V
 	adc_tempMOSFET   = adc_buffer[1]; // 2482 = 2V = 90°C
-	adc_uSenseLamp   = adc_buffer[2];
-	adc_iSenseLamp   = adc_buffer[3];
-	adc_lampIntensity= adc_buffer[4];
-	adc_iSenseIn     = adc_buffer[5]; // 2707 = 24V, 4095 = 0.825 A
+	adc_iSenseLamp   = adc_buffer[2];
+	adc_uSenseLamp   = adc_buffer[3];
+	adc_iSenseIn     = adc_buffer[4]; // 2707 = 24V, 4095 = 0.825 A
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
 }

@@ -61,34 +61,32 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define MCU_Remote_Pin GPIO_PIN_9
 #define MCU_Remote_GPIO_Port GPIOB
+#define LED2_Pin GPIO_PIN_14
+#define LED2_GPIO_Port GPIOC
 #define LED_Pin GPIO_PIN_15
 #define LED_GPIO_Port GPIOC
 #define _24V_Sense_Pin GPIO_PIN_0
 #define _24V_Sense_GPIO_Port GPIOA
 #define temp_MOSFET_Pin GPIO_PIN_1
 #define temp_MOSFET_GPIO_Port GPIOA
-#define Usense_Lamp_Pin GPIO_PIN_3
-#define Usense_Lamp_GPIO_Port GPIOA
+#define OCP_Pin GPIO_PIN_6
+#define OCP_GPIO_Port GPIOA
 #define Status_Pin GPIO_PIN_7
 #define Status_GPIO_Port GPIOA
 #define IsenseLamp_Pin GPIO_PIN_0
 #define IsenseLamp_GPIO_Port GPIOB
-#define LampIntensity_Pin GPIO_PIN_1
-#define LampIntensity_GPIO_Port GPIOB
+#define Usense_Lamp_Pin GPIO_PIN_1
+#define Usense_Lamp_GPIO_Port GPIOB
 #define Isense_In_Pin GPIO_PIN_2
 #define Isense_In_GPIO_Port GPIOB
 #define DRV_Pin GPIO_PIN_8
 #define DRV_GPIO_Port GPIOA
-#define GPIO_IN_ALIVE_Pin GPIO_PIN_9
-#define GPIO_IN_ALIVE_GPIO_Port GPIOA
-#define PWM_out_ALIVE_Pin GPIO_PIN_6
-#define PWM_out_ALIVE_GPIO_Port GPIOC
+#define OCP_Reset_Pin GPIO_PIN_6
+#define OCP_Reset_GPIO_Port GPIOC
 #define Isense_MOS_Pin GPIO_PIN_4
 #define Isense_MOS_GPIO_Port GPIOB
 #define PWM_INPUT_Pin GPIO_PIN_5
 #define PWM_INPUT_GPIO_Port GPIOB
-#define UV_LED_Pin GPIO_PIN_6
-#define UV_LED_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
