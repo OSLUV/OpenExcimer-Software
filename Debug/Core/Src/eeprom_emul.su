@@ -1,0 +1,2 @@
+../Core/Src/eeprom_emul.c:70:10:EEPROM_Read	24	static
+../Core/Src/eeprom_emul.c:89:6:EEPROM_Write	64	static
