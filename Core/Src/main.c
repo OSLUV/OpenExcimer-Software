@@ -50,6 +50,7 @@
 #define TMR_COUNTER 16000
 #define UART_DELAY 10
 #define POWER_MIN 10
+#define POWER_MAX 105
 
 #define MIN_IGNITION_TIME 1000 // 1000 ms
 #define maxIgnitionTime 2000 // 2000 ms
@@ -185,6 +186,22 @@ static void MX_NVIC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void changeFrequency(uint16_t powerSettingRaw){
+	uint16_t powerSetting = 0;
+
+	if (powerSettingRaw<POWER_MIN) {
+		powerSetting = POWER_MIN;
+	}
+	else if (powerSettingRaw>POWER_MAX) {
+		powerSetting = POWER_MAX;
+	}
+	else powerSetting = powerSettingRaw;
+
+	operationFrequencyARR_raw = freqPowerSetting[powerSetting];
+
+	return;
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 	if (huart->Instance == USART2) {
@@ -318,14 +335,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 				else {
 					powerLevel = atoi(dataPtr);
-					if ((powerLevel >= 0) && (powerLevel < 106)) {
-						if (powerLevel < POWER_MIN) {
-							operationFrequencyARR_raw = freqPowerSetting[POWER_MIN]; // clip lowest value
-						} else {
-							operationFrequencyARR_raw = freqPowerSetting[powerLevel];
-							if (storeDim_flag) {
-								EEPROM_Write(powerLevel); // store data to flash
-							}
+					if ((powerLevel >= POWER_MIN) && (powerLevel <= POWER_MAX)) {
+						changeFrequency(powerLevel);
+						if (storeDim_flag) {
+							EEPROM_Write(powerLevel); // store data to flash
 						}
 						snprintf(msg, sizeof(msg), "Set: %d percent\r\n", powerLevel);
 						HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg),UART_DELAY);
@@ -472,7 +485,7 @@ int main(void)
 
 
 	// set power
-	operationFrequencyARR_raw = freqPowerSetting[powerLevel];
+	changeFrequency(powerLevel);
 
   /* USER CODE END 2 */
 
@@ -490,11 +503,11 @@ int main(void)
 			if (risingEdge > 0) { // .. if external PWM method is used
 				externalPowerSetDuty = (uint32_t) (fallingEdge * 100
 						/ risingEdge) + 1;
-				if (externalPowerSetDuty < 5) {
+				if (externalPowerSetDuty < POWER_MIN) {
 					uartEnableFlag = 0; // turn off if zero
 				} else {
 					uartEnableFlag = 1; // turn on for all other values
-					operationFrequencyARR_raw = freqPowerSetting[externalPowerSetDuty];
+					changeFrequency(externalPowerSetDuty);
 				}
 
 			}
@@ -516,7 +529,7 @@ int main(void)
 				} else {
 					ditherCounter++;
 				}
-			} else {
+			} else { // no dithering
 				operationFrequencyARR = operationFrequencyARR_raw;
 			}
 
