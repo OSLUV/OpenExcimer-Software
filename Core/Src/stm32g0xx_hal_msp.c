@@ -118,7 +118,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     PB1     ------> ADC1_IN9
     PB2     ------> ADC1_IN10
     */
-    GPIO_InitStruct.Pin = _24V_Sense_Pin|temp_MOSFET_Pin|GPIO_PIN_5;
+    GPIO_InitStruct.Pin = _24V_Sense_Pin|temp_MOSFET_Pin|PowerSet_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -178,7 +178,7 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     PB1     ------> ADC1_IN9
     PB2     ------> ADC1_IN10
     */
-    HAL_GPIO_DeInit(GPIOA, _24V_Sense_Pin|temp_MOSFET_Pin|GPIO_PIN_5);
+    HAL_GPIO_DeInit(GPIOA, _24V_Sense_Pin|temp_MOSFET_Pin|PowerSet_Pin);
 
     HAL_GPIO_DeInit(GPIOB, IsenseLamp_Pin|Usense_Lamp_Pin|Isense_In_Pin);
 
@@ -303,74 +303,6 @@ void HAL_DAC_MspDeInit(DAC_HandleTypeDef* hdac)
     /* USER CODE BEGIN DAC1_MspDeInit 1 */
 
     /* USER CODE END DAC1_MspDeInit 1 */
-  }
-
-}
-
-/**
-  * @brief I2C MSP Initialization
-  * This function configures the hardware resources used in this example
-  * @param hi2c: I2C handle pointer
-  * @retval None
-  */
-void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(hi2c->Instance==I2C2)
-  {
-    /* USER CODE BEGIN I2C2_MspInit 0 */
-
-    /* USER CODE END I2C2_MspInit 0 */
-
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**I2C2 GPIO Configuration
-    PA11 [PA9]     ------> I2C2_SCL
-    PA12 [PA10]     ------> I2C2_SDA
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_12;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF6_I2C2;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /* Peripheral clock enable */
-    __HAL_RCC_I2C2_CLK_ENABLE();
-    /* USER CODE BEGIN I2C2_MspInit 1 */
-
-    /* USER CODE END I2C2_MspInit 1 */
-
-  }
-
-}
-
-/**
-  * @brief I2C MSP De-Initialization
-  * This function freeze the hardware resources used in this example
-  * @param hi2c: I2C handle pointer
-  * @retval None
-  */
-void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
-{
-  if(hi2c->Instance==I2C2)
-  {
-    /* USER CODE BEGIN I2C2_MspDeInit 0 */
-
-    /* USER CODE END I2C2_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_I2C2_CLK_DISABLE();
-
-    /**I2C2 GPIO Configuration
-    PA11 [PA9]     ------> I2C2_SCL
-    PA12 [PA10]     ------> I2C2_SDA
-    */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11);
-
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_12);
-
-    /* USER CODE BEGIN I2C2_MspDeInit 1 */
-
-    /* USER CODE END I2C2_MspDeInit 1 */
   }
 
 }

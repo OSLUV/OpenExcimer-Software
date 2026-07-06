@@ -57,8 +57,9 @@
 #define ULAMP_MAX 1100 // for open circuit detection / not used
 #define ILAMP_IGNITED 600 //
 
-#define UPPER_24VSUPPLY 3159 // 27V
-#define LOWER_24VSUPPLY 2000 // 18V
+#define UPPER_24VSUPPLY 3160 // 27V
+#define LOWER_24VSUPPLY 2080 // 18V
+#define USBC_SUPPLY 2500 // 21 V
 #define UPPER_TEMP_MOSFET 500 // 400 mV = ca. 75 °C
 #define UPPER_I_IN 2600
 
@@ -66,7 +67,7 @@
 #define ditherRange_kHz 20 // 10 kHz
 
 #define dutyIgnStart 60
-#define dutyIgnMax 100
+#define DUTY_IGN_MAX 100
 #define ignAmpltiudeStep 16
 
 #define primInductance 20
@@ -89,8 +90,6 @@ DMA_HandleTypeDef hdma_adc1;
 COMP_HandleTypeDef hcomp2;
 
 DAC_HandleTypeDef hdac1;
-
-I2C_HandleTypeDef hi2c2;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
@@ -131,6 +130,7 @@ char msg[60];
 int value = 0;
 uint8_t uartEnableFlag = 1;
 uint8_t powerLevel = 100; // linear dimming steps: 100 = full power, 15 = 15% power
+uint32_t potiPowerLevel = 100;
 // power setting by frequency control 0 - 105%, minimal power is 15% = 20 kHz
 uint16_t freqPowerSetting[106] = { 1146, 1146, 1146, 1146, 1146, 1146, 1146,
 		1146, 1146, 1146, 1065, 995, 934, 879, 831, 788, 750, 715, 683, 654,
@@ -146,6 +146,7 @@ uint16_t ignitionCounter = 0;
 uint8_t ignitionFinishedFlag = 0;
 uint16_t ignAmplitudeCounter = 0;
 uint8_t lampOnFlag = 0;
+uint16_t dutyIgnMax = DUTY_IGN_MAX;
 
 uint16_t adc_uSenseLampIgnited = 1800;
 
@@ -177,7 +178,6 @@ static void MX_TIM3_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM6_Init(void);
-static void MX_I2C2_Init(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -292,9 +292,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 			case 'D': // report ADC DATA
 				snprintf(msg, sizeof(msg),
-						"Ui %04d, T %04d, Ul %04d, Il %04d, Ii %04d\r\n",
+						"Ui %04d, T %04d, Ul %04d, Il %04d, Ii %04d, P %04d\r\n",
 						adc_24V, adc_tempMOSFET, adc_uSenseLamp, adc_iSenseLamp,
-						adc_iSenseIn);
+						adc_iSenseIn, adc_PowerSet);
 				HAL_UART_Transmit(&huart2, (uint8_t*) msg, strlen(msg),UART_DELAY);
 				break;
 
@@ -407,6 +407,12 @@ int main(void)
 		dac_IsenseMOS = dac_IsenseMOS + 100; // used as fall-back for maximum limiting
 	}
 
+	//if (adc_24V>LOWER_24VSUPPLY&&adc_24V<USBC_SUPPLY) { // increase limits for 20V USB-C operation.
+		chargeTimeOperation=chargeTimeOperation+ 10;
+		dutyIgnMax=dutyIgnMax+10;
+
+	//}
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -427,7 +433,6 @@ int main(void)
   MX_TIM16_Init();
   MX_USART2_UART_Init();
   MX_TIM6_Init();
-  MX_I2C2_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -512,6 +517,11 @@ int main(void)
 
 			}
 
+			if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12)) { // Poti mode
+				potiPowerLevel = (adc_PowerSet*100)/4095;
+				changeFrequency(potiPowerLevel);
+			}
+
 			tim6_slowIrq_request = 0;
 		}
 
@@ -533,6 +543,8 @@ int main(void)
 				operationFrequencyARR = operationFrequencyARR_raw;
 			}
 
+
+
 			// Check enable flag
 			enableFlag = !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_9) && uartEnableFlag; //pull low for enabling
 			// check ignition
@@ -552,6 +564,7 @@ int main(void)
 			// checked in all states, lower priority
 
 			// check supply voltage
+			supplyOKFlag=1;
 			if ((adc_24V < UPPER_24VSUPPLY) && (adc_24V > LOWER_24VSUPPLY)) {
 				supplyOKFlag = 1;
 			}
@@ -762,9 +775,6 @@ static void MX_NVIC_Init(void)
   /* ADC1_COMP_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(ADC1_COMP_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(ADC1_COMP_IRQn);
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* TIM3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(TIM3_IRQn);
@@ -799,13 +809,13 @@ static void MX_ADC1_Init(void)
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.LowPowerAutoPowerOff = DISABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
-  hadc1.Init.NbrOfConversion = 5;
+  hadc1.Init.NbrOfConversion = 6;
   hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T6_TRGO;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
   hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  hadc1.Init.SamplingTimeCommon1 = ADC_SAMPLETIME_79CYCLES_5;
-  hadc1.Init.SamplingTimeCommon2 = ADC_SAMPLETIME_79CYCLES_5;
+  hadc1.Init.SamplingTimeCommon1 = ADC_SAMPLETIME_39CYCLES_5;
+  hadc1.Init.SamplingTimeCommon2 = ADC_SAMPLETIME_39CYCLES_5;
   hadc1.Init.OversamplingMode = DISABLE;
   hadc1.Init.TriggerFrequencyMode = ADC_TRIGGER_FREQ_HIGH;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -815,7 +825,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Channel = ADC_CHANNEL_5;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLINGTIME_COMMON_1;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -854,6 +864,15 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = ADC_REGULAR_RANK_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = ADC_REGULAR_RANK_6;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -939,54 +958,6 @@ static void MX_DAC1_Init(void)
   /* USER CODE BEGIN DAC1_Init 2 */
 
   /* USER CODE END DAC1_Init 2 */
-
-}
-
-/**
-  * @brief I2C2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C2_Init(void)
-{
-
-  /* USER CODE BEGIN I2C2_Init 0 */
-
-  /* USER CODE END I2C2_Init 0 */
-
-  /* USER CODE BEGIN I2C2_Init 1 */
-
-  /* USER CODE END I2C2_Init 1 */
-  hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x00303D5B;
-  hi2c2.Init.OwnAddress1 = 0;
-  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c2.Init.OwnAddress2 = 0;
-  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C2_Init 2 */
-
-  /* USER CODE END I2C2_Init 2 */
 
 }
 
@@ -1219,7 +1190,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 9600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -1259,6 +1230,11 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 
 }
 
@@ -1305,11 +1281,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : OCP_Pin */
-  GPIO_InitStruct.Pin = OCP_Pin;
+  /*Configure GPIO pins : OCP_Pin PotiSelect_Pin */
+  GPIO_InitStruct.Pin = OCP_Pin|PotiSelect_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(OCP_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 

@@ -69,6 +69,8 @@ void Error_Handler(void);
 #define _24V_Sense_GPIO_Port GPIOA
 #define temp_MOSFET_Pin GPIO_PIN_1
 #define temp_MOSFET_GPIO_Port GPIOA
+#define PowerSet_Pin GPIO_PIN_5
+#define PowerSet_GPIO_Port GPIOA
 #define OCP_Pin GPIO_PIN_6
 #define OCP_GPIO_Port GPIOA
 #define Status_Pin GPIO_PIN_7
@@ -83,6 +85,8 @@ void Error_Handler(void);
 #define DRV_GPIO_Port GPIOA
 #define OCP_Reset_Pin GPIO_PIN_6
 #define OCP_Reset_GPIO_Port GPIOC
+#define PotiSelect_Pin GPIO_PIN_12
+#define PotiSelect_GPIO_Port GPIOA
 #define Isense_MOS_Pin GPIO_PIN_4
 #define Isense_MOS_GPIO_Port GPIOB
 #define PWM_INPUT_Pin GPIO_PIN_5
