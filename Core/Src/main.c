@@ -121,7 +121,6 @@ volatile uint16_t dac_IsenseMOS; // current setpoint for COMP2 in- for closed lo
 volatile uint16_t chargeTimeOperation; // duty cycle for operation open loop, optimized 78 für 26 uH, 80 für 33u
 
 volatile uint16_t externalPowerSetDuty = 0;
-
 volatile uint16_t externalPowerSetDutyCalc = 0;
 
 char uart_rx_buffer[RX_BUFFER_SIZE];
@@ -547,10 +546,12 @@ int main(void) {
 
 			}
 
+			/*
 			if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12)) { // Poti mode
 				potiPowerLevel = (adc_PowerSet * 100) / 4095;
 				changeFrequency(potiPowerLevel);
 			}
+			*/
 
 			tim6_slowIrq_request = 0;
 		}
